@@ -1,4 +1,7 @@
 #include "LcdLM234.h"
+#include <avr/pgmspace.h>
+#include "HD44102.h"
+#include "cp850.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
   #include "Arduino.h"
@@ -8,36 +11,13 @@
 
 HD44102 controller;
 
-//const byte max_x = 20; // Chars, not lines
-//const byte max_x_lines = 100; // lines
-//const byte max_y = 8;
-
 LcdLM234::LcdLM234(const byte _cs1pin, const byte _cs2pin, const byte _enablepin, 
          const byte _dipin, const byte _rwpin, const byte d0, const byte d1, 
          const byte d2, const byte d3, const byte d4, const byte d5, 
          const byte d6, const byte d7)
 {
-  controller.cs1=_cs1pin;
-  controller.cs2=_cs2pin;
-  controller.rw=_rwpin;
-  controller.en=_enablepin;
-  controller.di=_dipin;
-  controller.datos[0]=d0;
-  controller.datos[1]=d1;
-  controller.datos[2]=d2;
-  controller.datos[3]=d3;
-  controller.datos[4]=d4;
-  controller.datos[5]=d5;
-  controller.datos[6]=d6;
-  controller.datos[7]=d7;
-  controller._8bits=1;
-  controller.rwstatus=false;
-
-  pinMode(controller.cs1,OUTPUT);
-  pinMode(controller.cs2,OUTPUT);
-  pinMode(controller.di,OUTPUT);
-  pinMode(controller.rw,OUTPUT);
-  pinMode(controller.en,OUTPUT);
+  controller.begin(_cs1pin, _cs2pin, _rwpin, _enablepin, _dipin, 1, 
+                   d0, d1, d2, d3, d4, d5, d6, d7);
 
   autoscroll=0;
   lcdon();
@@ -155,18 +135,19 @@ size_t LcdLM234::write(byte value)
   
   for (i=0;i<5;i++)
   {
-    j= (byte) charset[value][i];
+    j= (byte) pgm_read_byte(charset + value*5 + i);
     writedata(j);
   }
   if (autoscroll && global_y==0 && global_x==0)
   {
-    scrollup(0,0,max_x,max_y-1);
+    //scrollup(0,0,max_x,max_y-1);
+    scrollup();
     setCursor(0,max_y-1);
   }
   return 1;
 }
 
-void LcdLM234::scrollup(byte x, byte y, byte length, byte height)
+void LcdLM234::scrollup_section(byte x, byte y, byte length, byte height)
 {
   byte i,j,k=x+length;
   byte buf[100];
@@ -183,6 +164,68 @@ void LcdLM234::scrollup(byte x, byte y, byte length, byte height)
   setCursor(x,y+height);
   for (i=x;i<k*5;i++)
     writedata(0);
+}
+
+void LcdLM234::scrollup()
+{
+  byte i,j;
+  byte buf[4][50];
+  byte middle[2][50];
+
+  controller.setxy(0,0,2);
+  controller.setxy(0,0,3);
+  // Dummy reads needed after write and before read
+  controller.readdata(2);
+  controller.readdata(3);
+  for (i=0;i<50;i++)
+  {
+    middle[0][i]=controller.readdata(2);
+    middle[1][i]=controller.readdata(3);
+  }
+
+  for (j=0;j<3;j++)
+  {
+	  controller.setxy(0,j+1,0);
+	  controller.setxy(0,j+1,1);
+	  controller.setxy(0,j+1,2);
+	  controller.setxy(0,j+1,3);
+          // Dummy reads needed after write and before read
+	  controller.readdata(0);
+	  controller.readdata(1);
+	  controller.readdata(2);
+	  controller.readdata(3);
+	  for (i=0;i<50;i++)
+	  {
+	    buf[0][i]=controller.readdata(0);
+	    buf[1][i]=controller.readdata(1);
+	    buf[2][i]=controller.readdata(2);
+	    buf[3][i]=controller.readdata(3); 
+	  }
+	  controller.setxy(0,j,0);
+	  controller.setxy(0,j,1);
+	  controller.setxy(0,j,2);
+	  controller.setxy(0,j,3);
+	  for (i=0;i<50;i++)
+	  {
+	    controller.writedata(buf[0][i],0);
+	    controller.writedata(buf[1][i],1);
+	    controller.writedata(buf[2][i],2);
+	    controller.writedata(buf[3][i],3);
+	  }
+  }
+
+  controller.setxy(0,3,0);
+  controller.setxy(0,3,1);
+  controller.setxy(0,3,2);
+  controller.setxy(0,3,3);
+  for (i=0;i<50;i++)
+  {
+    controller.writedata(middle[0][i],0);
+    controller.writedata(middle[1][i],1);
+    controller.writedata(0,2);
+    controller.writedata(0,3);
+  }
+
 }
 
 void LcdLM234::invertChr(byte x, byte y)

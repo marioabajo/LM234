@@ -40,7 +40,8 @@ void demos()
   t1=millis();
   for (i=0;i<8;i++)
   {
-    lcd.scrollup(0,0,20,7);
+    //lcd.scrollup(0,0,20,7);
+    lcd.scrollup();
   }
   Serial.println(millis()-t1);
   delay(1000);
@@ -109,7 +110,8 @@ void put(byte c)
         lcd.setCursor(0,lcd.global_y+1);
       else
       {
-        lcd.scrollup(0,0,lcd.max_x,lcd.max_y-1);
+        //lcd.scrollup(0,0,lcd.max_x,lcd.max_y-1);
+        lcd.scrollup();
         lcd.setCursor(0,lcd.max_y-1);
       }
       break;
@@ -140,8 +142,14 @@ void setup()
 
 void loop()
 {
-  
+  char c;
+
   while (1)
     if (Serial.available())
-      put(Serial.read());
+    {
+      c = Serial.read();
+      if (c == '\r')
+        put('\n');
+      put(c);
+    }
 }

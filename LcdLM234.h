@@ -1,9 +1,7 @@
 #ifndef LcdLM234_h
 #define LcdLM234_h
 
-#include "Arduino.h"
-#include "HD44102.h"
-#include "cp850.h"
+#include <Arduino.h>
 
 #define byte uint8_t
 
@@ -21,7 +19,8 @@ class LcdLM234 : public Print {
     void   cls();
     void   setCursor(byte x, byte y);
     size_t write(byte value);
-    void   scrollup(byte x, byte y, byte length, byte height);
+    void   scrollup_section(byte x, byte y, byte length, byte height);
+    void   scrollup();
     static const byte max_x = 20;
     static const byte max_x_lines = 100;
     static const byte max_y = 8;
