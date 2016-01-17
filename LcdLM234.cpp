@@ -136,8 +136,16 @@ size_t LcdLM234::write(byte value)
   for (i=0;i<5;i++)
   {
     j= (byte) pgm_read_byte(charset + value*5 + i);
-    writedata(j);
+    // TODO: This is not exact, if the character is not alligned and the
+    // character starts a line beyond the last character of the chip area
+    // it will print at the beginning of the line. But this is faster.
+    controller.writedata(j,chip);
+    //writedata(j);
   }
+  global_x_lines+=5;
+  global_x=global_x_lines/5;
+  calc_pos();
+
   if (autoscroll && global_y==0 && global_x==0)
   {
     //scrollup(0,0,max_x,max_y-1);

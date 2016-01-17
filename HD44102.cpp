@@ -122,7 +122,7 @@ inline void HD44102::write8bits(byte value)
   digitalWrite(datos[6],(value & 0x40));
   digitalWrite(datos[7],(value & 0x80));*/
   
-  pulseEnable5();
+  pulseEnable();
 }
 
 byte HD44102::readFlags(void)
